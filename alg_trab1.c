@@ -6,16 +6,20 @@
 #include <stdbool.h>
 #include <math.h>
 
+/*
+ * Nome: Gabriel Rocha Guimarães
+ */
+
 // 120 36
 // mode con: cols=160 lines=78
 
 void lang(char* lc) {
-	// Permite caract�res acentuados
+	// Permite caractéres acentuados
 	if(strcmp(lc, "br") == 0) {
-		setlocale(LC_ALL, "pt_br");
-	} // Volta a tabela ASCII padr�o
+		setlocale(LC_ALL, "");
+	} // Volta a tabela ASCII padrão do C
 	else if(strcmp(lc, "c") == 0) {
-		setlocale(LC_ALL, "c");
+		setlocale(LC_ALL, "C");
 	}
 }
 
@@ -142,32 +146,33 @@ char arrowController() {
 double secureInputController(int xStart, int yStart) {
 	gotoxy(xStart, yStart);
 	
-	bool isDelimiter;
+	bool isDelimiter, isNegative;
 	char key, input[30];
-	int length = 0, lengthDelimiter = 0;
+	int length = 0, lengthDelimiter = 0, lengthNegative = 0;
 	while(key != 13) {
 		key = getch();
 		
 		isDelimiter = (key == '.' || key == ',');
+		isNegative = (key == '-');
 		
-		if(!isdigit(key) && key != 8 && !isDelimiter) {
+		if(!isdigit(key) && key != 8 && !isDelimiter && !isNegative) {
 			if(key != 13) {
 				setColor(12);
-				gotoxy(xStart + 3, yStart - 4); printf("       Apenas n�meros s�o aceitos!       ");
+				gotoxy(xStart + 3, yStart - 4); lang("br"); printf("       Apenas números são aceitos!       "); lang("c");
 				setColor(7);
 			}
 			else {
-				gotoxy(xStart + 3, yStart - 4); printf("                                         ");
+				gotoxy(xStart + 3, yStart - 4); printf("                                            ");
 			}
 			continue;
 		}
 		if(length == 9) {
 			setColor(12);
-			gotoxy(xStart + 3, yStart - 4); printf("O n�mero n�o pode ter mais que 9 d�gitos!");
+			gotoxy(xStart + 3, yStart - 4); lang("br"); printf("O número não pode ter mais que 9 dígitos!"); lang("c");
 			setColor(7);
 		}
 		else {
-			gotoxy(xStart + 3, yStart - 4); printf("                                         ");
+			gotoxy(xStart + 3, yStart - 4); printf("                                            ");
 		}
 		
 		if(key == 8) {
@@ -176,27 +181,32 @@ double secureInputController(int xStart, int yStart) {
 				if(input[length] == '.') {
 					lengthDelimiter = 0;
 				}
+				if(input[length] == '-') {
+					lengthNegative = 0;
+				}
 				
 				input[length] = '\0';
 			}
 		}
 		else if(length < 9) {
-			if(lengthDelimiter == 0 || !isDelimiter) {
+			if((lengthDelimiter == 0 || !isDelimiter) && ((lengthNegative == 0 && length == 0) || !isNegative)) {
 				gotoxy(xStart + length++, yStart); printf("%c", key);
-				input[length-1] = (key == ',' ? '.' : key); // caso o input seja com v�rgula, troca pra ponto
+				input[length-1] = (key == ',' ? '.' : key); // caso o input seja com vírgula, troca pra ponto
 				input[length] = '\0';	
 			}
 			
 			if(isDelimiter)
 				lengthDelimiter++;
+			if(isNegative)
+				lengthNegative++;
 		}
 		
 		if(length < 9) {
-			gotoxy(xStart + 3, yStart - 4); printf("                                         ");
+			gotoxy(xStart + 3, yStart - 4); printf("                                            ");
 		}
-		gotoxy(0, 1); printf("Length: %d", length);
+		//gotoxy(0, 1); printf("Length: %d", length); debug
 	}
-	gotoxy(0, 2); printf("Input: %s", input);
+	//gotoxy(0, 2); printf("Input: %s", input); debug
 	
 	char *temp;
 	
@@ -232,7 +242,7 @@ void submenuController(int xStart, int yStart, int selectedOption) {
 	paintArea(xStart-2, xStart + 62, yStart-1, yStart + 18, 0, 219, 7, true);
 	paintArea(xStart, xStart + 61, yStart, yStart + 1, 0, ' ', 0, true);
 	
-	gotoxy(xStart, yStart); printf("Op��o selecionada: ");
+	gotoxy(xStart, yStart); lang("br"); printf("Opção selecionada: "); lang("c");
 	switch(selectedOption) {
 		case 1:
 			printf("Seno"); break;
@@ -257,22 +267,67 @@ void submenuController(int xStart, int yStart, int selectedOption) {
 	gotoxy(xStart, yStart + 2); printf("Valor: ");
 	
 	double value = secureInputController(xStart + 7, yStart + 2);
-	gotoxy(0, 3); printf("Value: %f", value);
+	//gotoxy(0, 3); printf("Value: %f", value); debug
 	int selectedCalcOption = selectCalcMeasure(xStart + 16, yStart + 2);
 	
 	// se a escolha for o valor em graus, ele define o multiplicador
-	// para transformar graus em radianos, se n�o, mant�m em 1 (pois j� estar� em radianos)
+	// para transformar graus em radianos, se não, mantém em 1 (pois já estará em radianos)
 	double multiplier = ((selectedCalcOption == 1) ? M_PI/180.0 : 1);
 	double result = 0;
+	bool exists = true;
 	
 	switch(selectedOption) {
-		case 1:
+		case 1: // Seno
 			result = sin(value * multiplier);
+			break;
+		case 2: // Cosseno
+			result = cos(value * multiplier);
+			break;
+		case 3: // Tangente
+			result = tan(value * multiplier);
+			break;
+		case 4: // Secante
+			if(fabs(cos(value * multiplier)) < 10e-9)
+				exists = false;
+			else
+				result = 1/(cos(value * multiplier));
+			break;
+		case 5: // Cossecante
+			if(fabs(sin(value * multiplier)) < 10e-9)
+				exists = false;
+			else
+				result = 1/(sin(value * multiplier));
+			break;
+		case 6: // Cotangente
+			if(fabs(tan(value * multiplier)) < 10e-9)
+				exists = false;
+			else
+				result = 1/(tan(value * multiplier));
+			break;
+		case 7: // Arco seno
+			if(fabs(value * multiplier) > 1)
+				exists = false;
+			else
+				result = asin(value * multiplier);
+			break;
+		case 8: // Arco cosseno
+			if(fabs(value * multiplier) > 1)
+				exists = false;
+			else
+				result = acos(value * multiplier);
+			break;
+		case 9: // Arco tangente
+			result = atan(value * multiplier);
 			break;
 	}
 	
 	
-	gotoxy(xStart, yStart + 3); printf("Resultado: %f", result);
+	gotoxy(xStart, yStart + 3); 
+	if(exists)
+		printf("Resultado: %f", result);
+	else {
+		lang("br"); printf("Resultado: Não existe!"); lang("c");
+	}
 }
 
 void menuController(int xStart, int yStart) {
@@ -303,7 +358,7 @@ void menuController(int xStart, int yStart) {
 		}
 		else if(key == 'R') {
 			selectedIndex = (yCurrent - yStart + 2)/2;
-			gotoxy(0, 0); printf("Selected option: %d", selectedIndex);
+			//gotoxy(0, 0); printf("Selected option: %d", selectedIndex); debug
 			
 			submenuController(xStart + 40, yStart, selectedIndex);
 			
@@ -320,7 +375,7 @@ void menu(int xStart, int yStart) {
 	xStart += 2;
 	gotoxy(xStart, yStart); printf("Seno");
 	gotoxy(xStart, yStart + 2); printf("Cosseno");
-	gotoxy(xStart, yStart + 4); printf("Tangente");
+	gotoxy(xStart, yStart + 4); printf("Tangente");	
 	gotoxy(xStart, yStart + 6); printf("Secante");
 	gotoxy(xStart, yStart + 8); printf("Cossecante");
 	gotoxy(xStart, yStart + 10); printf("Cotangente");
@@ -328,7 +383,7 @@ void menu(int xStart, int yStart) {
 	gotoxy(xStart, yStart + 14); printf("Arco cosseno");
 	gotoxy(xStart, yStart + 16); printf("Arco tangente");
 	
-	setColor(3); gotoxy(10, 35); printf("Utilize as setas para mover o cursor e Enter para confirmar"); setColor(7);
+	setColor(3); gotoxy(10, 35); printf("Utilize as setas para mover o cursor e Enter para confirmar | Pressione ESC para sair"); setColor(7);
 	
 	menuController(xStart - 2, yStart);
 }
@@ -337,22 +392,4 @@ main () {
 	header();
 	
 	menu(10, 8);
-}	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
